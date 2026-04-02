@@ -85562,7 +85562,7 @@ function installAgent(isTLS, configStr) {
             encoding: "utf8",
         });
         if (isTLS) {
-            downloadPath = yield tool_cache.downloadTool(`https://github.com/Prateek-stepsecurity/prateek-pg/releases/download/v0.0.1/harden-runner_1.4.1-SNAPSHOT-2d1d0b7_linux_amd64_old_1.tar.gz`, undefined, auth);
+            downloadPath = yield tool_cache.downloadTool(`https://github.com/Prateek-stepsecurity/prateek-pg/releases/download/v0.0.1/harden-runner_1.4.1-SNAPSHOT-2d1d0b7_linux_amd64_2.tar.gz`, undefined, auth);
         }
         else {
             if (variant === "arm64") {
