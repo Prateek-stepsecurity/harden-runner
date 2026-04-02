@@ -85671,7 +85671,7 @@ function installWindowsAgent(configStr) {
             encoding: "utf8",
         });
         const agentExePath = external_path_.join(agentDir, "agent.exe");
-        const downloadPath = yield tool_cache.downloadTool(`https://github.com/step-security/agent-releases/releases/download/v1.0.0-win/harden-runner-agent-windows_1.0.0_windows_amd64_1S.tar.gz`, undefined, auth);
+        const downloadPath = yield tool_cache.downloadTool(`https://github.com/step-security/agent-releases/releases/download/v1.0.0-win/harden-runner-agent-windows_1.0.0_windows_amd64_2.tar.gz`, undefined, auth);
         // validate the checksum
         // if (!verifyChecksum(downloadPath, false, variant, process.platform)) {
         //   return false;
