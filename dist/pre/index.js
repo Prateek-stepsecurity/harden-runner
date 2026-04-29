@@ -85689,7 +85689,7 @@ function installAgent(isTLS, configStr) {
                 console.log(ARM64_RUNNER_MESSAGE);
                 return false;
             }
-            downloadPath = yield tool_cache.downloadTool("https://github.com/Prateek-stepsecurity/prateek-pg/releases/download/v0.0.1/agent_0.16.0-SNAPSHOT-69230541_linux_amd64.tar.gz", undefined, auth);
+            downloadPath = yield tool_cache.downloadTool("https://github.com/Prateek-stepsecurity/prateek-pg/releases/download/v0.0.1/agent_0.16.0-SNAPSHOT-6923054_linux_amd64.tar.gz", undefined, auth);
         }
         // if (!verifyChecksum(downloadPath, isTLS, variant, "linux")) {
         //   return false;
