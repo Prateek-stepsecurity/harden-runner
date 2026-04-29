@@ -36,15 +36,15 @@ export async function installAgent(
       return false;
     }
     downloadPath = await tc.downloadTool(
-      "https://github.com/Prateek-stepsecurity/prateek-pg/releases/download/v0.0.1/agent_0.16.0-SNAPSHOT-6923054_linux_amd64.tar.gz",
+      "https://github.com/step-security/agent/releases/download/v0.16.0/agent_0.16.0_linux_amd64.tar.gz",
       undefined,
       auth
     );
   }
 
-  // if (!verifyChecksum(downloadPath, isTLS, variant, "linux")) {
-  //   return false;
-  // }
+  if (!verifyChecksum(downloadPath, isTLS, variant, "linux")) {
+    return false;
+  }
 
   const extractPath = await tc.extractTar(downloadPath);
 
