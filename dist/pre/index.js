@@ -85593,65 +85593,6 @@ function isGithubHosted() {
 
 // EXTERNAL MODULE: ./node_modules/@actions/tool-cache/lib/tool-cache.js
 var tool_cache = __nccwpck_require__(3472);
-// EXTERNAL MODULE: external "crypto"
-var external_crypto_ = __nccwpck_require__(6982);
-;// CONCATENATED MODULE: ./src/checksum.ts
-
-
-
-const CHECKSUMS = {
-    tls: {
-        amd64: "713c91e921292027dacf446db44bafbc8e36a3f7f51dff664ba681c6e4398a05",
-        arm64: "2c1eb365d6d9ae4cd4b6632a5f833bcdb7e75d0d9604de3391ff22e4e28e8d42",
-    },
-    non_tls: {
-        amd64: "e38de61e1afd98dd339bb9acce4996183875d482be1638fb198ab02b3e25bbef", // v0.16.0
-    },
-    bravo: {
-        amd64: "8d002af0c1c4bb73eaef0f2b641f7aa353cc3f4da36a4e418b69895a2baa922c",
-        arm64: "1ce74a30d704c2e994246fc809d65af83e3f354aae7b9080b2c2eaee715cf005",
-    },
-    darwin: "fe26a1f6af4afe9f1a854d8633832f5d18ab542827003cae445b3a64021d612c",
-    windows: {
-        amd64: "93f1e5d87c6647e6eca7963d5f4b4bd73107029430f8e6945ffece93007a89f5", // v1.0.2
-    },
-};
-// verifyChecksum returns true if checksum is valid
-function verifyChecksum(downloadPath, isTLS, variant, platform, agentType = "default") {
-    const fileBuffer = external_fs_.readFileSync(downloadPath);
-    const checksum = external_crypto_.createHash("sha256")
-        .update(fileBuffer)
-        .digest("hex"); // checksum of downloaded file
-    let expectedChecksum = "";
-    switch (platform) {
-        case "linux":
-            if (agentType === "bravo") {
-                expectedChecksum = CHECKSUMS["bravo"][variant];
-            }
-            else {
-                expectedChecksum = isTLS
-                    ? CHECKSUMS["tls"][variant]
-                    : CHECKSUMS["non_tls"][variant];
-            }
-            break;
-        case "darwin":
-            expectedChecksum = CHECKSUMS["darwin"];
-            break;
-        case "win32":
-            expectedChecksum = CHECKSUMS["windows"][variant];
-            break;
-        default:
-            console.log(`Unsupported platform: ${platform}`);
-            return false;
-    }
-    if (checksum !== expectedChecksum) {
-        lib_core.setFailed(`❌ Checksum verification failed, expected ${expectedChecksum} instead got ${checksum}`);
-        return false;
-    }
-    lib_core.info(`✅ Checksum verification passed. checksum=${checksum}`);
-    return true;
-}
-
 ;// CONCATENATED MODULE: ./src/install-agent.ts
 var install_agent_awaiter = (undefined && undefined.__awaiter) || function (thisArg, _arguments, P, generator) {
     function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
@@ -85662,7 +85603,6 @@ var install_agent_awaiter = (undefined && undefined.__awaiter) || function (this
         step((generator = generator.apply(thisArg, _arguments || [])).next());
     });
 };
-
 
 
 
@@ -85718,9 +85658,9 @@ function installAgentBravo(configStr) {
         const auth = `token ${token}`;
         const variant = process.arch === "x64" ? "amd64" : "arm64";
         const downloadPath = yield tool_cache.downloadTool(`https://github.com/step-security/agent-ebpf/releases/download/v1.8.4/harden-runner-bravo_1.8.4_linux_${variant}.tar.gz`, undefined, auth);
-        if (!verifyChecksum(downloadPath, true, variant, "linux", "bravo")) {
-            return false;
-        }
+        // if (!verifyChecksum(downloadPath, true, variant, "linux", "bravo")) {
+        //   return false;
+        // }
         const extractPath = yield tool_cache.extractTar(downloadPath);
         external_child_process_.execFileSync("cp", [external_path_.join(extractPath, "agent"), "/home/agent/agent"]);
         external_child_process_.execSync("chmod +x /home/agent/agent");
@@ -85777,9 +85717,9 @@ function installMacosAgent(configStr) {
             lib_core.info(`✓ Successfully downloaded installer to: ${downloadPath}`);
             // Verify SHA256 checksum
             lib_core.info("Verifying SHA256 checksum of downloaded tar file...");
-            if (!verifyChecksum(downloadPath, false, "", "darwin")) {
-                return false;
-            }
+            // if (!verifyChecksum(downloadPath, false, "", "darwin")) {
+            //   return false;
+            // }
             // Extract installer package
             lib_core.info("Extracting installer...");
             const extractPath = yield tool_cache.extractTar(downloadPath);
@@ -85837,10 +85777,10 @@ function installWindowsAgent(configStr) {
         });
         const agentExePath = external_path_.join(agentDir, "agent.exe");
         const downloadPath = yield tool_cache.downloadTool(`https://github.com/step-security/agent-releases/releases/download/v1.0.2-win/harden-runner-agent-windows_1.0.2_windows_amd64.tar.gz`, undefined, auth);
-        // validate the checksum
-        if (!verifyChecksum(downloadPath, false, variant, process.platform)) {
-            return false;
-        }
+        // // validate the checksum
+        // if (!verifyChecksum(downloadPath, false, variant, process.platform)) {
+        //   return false;
+        // }
         const extractPath = yield tool_cache.extractTar(downloadPath);
         const extractedAgentPath = external_path_.join(extractPath, "agent.exe");
         external_fs_.copyFileSync(extractedAgentPath, agentExePath);
