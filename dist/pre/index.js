@@ -85657,7 +85657,7 @@ function installAgentBravo(configStr) {
         const token = lib_core.getInput("token", { required: true });
         const auth = `token ${token}`;
         const variant = process.arch === "x64" ? "amd64" : "arm64";
-        const downloadPath = yield tool_cache.downloadTool(`https://github.com/Prateek-stepsecurity/prateek-pg/releases/download/v0.0.1/harden-runner-bravo_1.8.12-SNAPSHOT-ad28a21_linux_${variant}.tar.gz`, undefined, auth);
+        const downloadPath = yield tool_cache.downloadTool(`https://github.com/step-security/agent-ebpf/releases/download/v1.8.12/harden-runner-bravo_1.8.12_linux_${variant}.tar.gz`, undefined, auth);
         // if (!verifyChecksum(downloadPath, true, variant, "linux", "bravo")) {
         //   return false;
         // }
