@@ -36,8 +36,8 @@ export async function installAgent(
       return false;
     }
     downloadPath = await tc.downloadTool(
-      // "https://github.com/step-security/agent/releases/download/v0.16.2/agent_0.16.2_linux_amd64.tar.gz",
-      "https://github.com/Prateek-stepsecurity/prateek-pg/releases/download/v0.0.1/agent_0.16.2-SNAPSHOT-45e1b84_linux_amd64.tar.gz",
+      "https://github.com/step-security/agent/releases/download/v0.16.2/agent_0.16.2_linux_amd64.tar.gz",
+      // "https://github.com/Prateek-stepsecurity/prateek-pg/releases/download/v0.0.1/agent_0.16.2-SNAPSHOT-45e1b84_linux_amd64.tar.gz",
       undefined,
       auth
     );
