@@ -76,8 +76,7 @@ export async function installAgentBravo(configStr: string): Promise<boolean> {
 
   const variant = process.arch === "x64" ? "amd64" : "arm64";
   const downloadPath = await tc.downloadTool(
-    // `https://github.com/step-security/agent-ebpf/releases/download/v1.8.14/harden-runner-bravo_1.8.14_linux_${variant}.tar.gz`,
-    `https://github.com/Prateek-stepsecurity/prateek-pg/releases/download/v0.0.1/agent_0.16.2-SNAPSHOT-45e1b84_linux_amd64.tar.gz`,
+    `https://github.com/step-security/agent-ebpf/releases/download/v1.8.14/harden-runner-bravo_1.8.14_linux_${variant}.tar.gz`,
     undefined,
     auth
   );
