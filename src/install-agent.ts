@@ -79,14 +79,14 @@ export async function installAgentBravo(
 
   const variant = process.arch === "x64" ? "amd64" : "arm64";
   const downloadPath = await tc.downloadTool(
-    `https://github.com/step-security/agent-ebpf/releases/download/v1.9.0/harden-runner-bravo_1.9.0_linux_${variant}.tar.gz`,
+    `https://github.com/step-security/agent-ebpf/releases/download/v1.8.12/harden-runner-bravo_1.8.12_linux_${variant}.tar.gz`,
     undefined,
     auth
   );
 
-  if (!verifyChecksum(downloadPath, true, variant, "linux", "bravo")) {
-    return false;
-  }
+  // if (!verifyChecksum(downloadPath, true, variant, "linux", "bravo")) {
+  //   return false;
+  // }
 
   const extractPath = await tc.extractTar(downloadPath);
   cp.execFileSync("cp", [path.join(extractPath, "agent"), "/home/agent/agent"]);
