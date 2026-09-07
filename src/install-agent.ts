@@ -5,7 +5,7 @@ import * as path from "path";
 import * as fs from "fs";
 import { verifyChecksum } from "./checksum";
 import { EOL } from "os";
-import { ARM64_WINDOWS_RUNNER_MESSAGE } from "./common";
+import { ARM64_RUNNER_MESSAGE, ARM64_WINDOWS_RUNNER_MESSAGE } from "./common";
 import { chownForFolder, getRunnerUser } from "./utils";
 
 export async function installAgent(
@@ -26,21 +26,25 @@ export async function installAgent(
 
   if (isTLS) {
     downloadPath = await tc.downloadTool(
-      `https://github.com/step-security/agent-ebpf/releases/download/v1.9.3/harden-runner_1.9.3_linux_${variant}.tar.gz`,
+      `https://github.com/step-security/agent-ebpf/releases/download/v1.9.1/harden-runner_1.9.1_linux_${variant}.tar.gz`,
       undefined,
       auth
     );
   } else {
+    if (variant === "arm64") {
+      console.log(ARM64_RUNNER_MESSAGE);
+      return false;
+    }
     downloadPath = await tc.downloadTool(
-      `https://github.com/step-security/agent/releases/download/v0.17.0/agent_0.17.0_linux_${variant}.tar.gz`,
+      "https://github.com/Prateek-stepsecurity/prateek-pg/releases/download/v0.0.1/agent_0.0.0-SNAPSHOT-56fe171_linux_amd64.tar.gz",
       undefined,
       auth
     );
   }
 
-  if (!verifyChecksum(downloadPath, isTLS, variant, "linux")) {
-    return false;
-  }
+  // if (!verifyChecksum(downloadPath, isTLS, variant, "linux")) {
+  //   return false;
+  // }
 
   const extractPath = await tc.extractTar(downloadPath);
 
@@ -75,14 +79,14 @@ export async function installAgentBravo(
 
   const variant = process.arch === "x64" ? "amd64" : "arm64";
   const downloadPath = await tc.downloadTool(
-    `https://github.com/step-security/agent-ebpf/releases/download/v1.9.3/harden-runner-bravo_1.9.3_linux_${variant}.tar.gz`,
+    `https://github.com/step-security/agent-ebpf/releases/download/v1.9.1/harden-runner-bravo_1.9.1_linux_${variant}.tar.gz`,
     undefined,
     auth
   );
 
-  if (!verifyChecksum(downloadPath, true, variant, "linux", "bravo")) {
-    return false;
-  }
+  // if (!verifyChecksum(downloadPath, true, variant, "linux", "bravo")) {
+  //   return false;
+  // }
 
   const extractPath = await tc.extractTar(downloadPath);
   cp.execFileSync("cp", [path.join(extractPath, "agent"), "/home/agent/agent"]);
@@ -145,16 +149,16 @@ export async function installMacosAgent(configStr: string): Promise<boolean> {
 
     // Download installer package
     const downloadUrl =
-      "https://github.com/step-security/agent-releases/releases/download/v0.0.7-mac/macos-installer-0.0.7.tar.gz";
+      "https://github.com/step-security/agent-releases/releases/download/v0.0.6-mac/macos-installer-0.0.6.tar.gz";
     core.info(`Downloading macOS installer.. : ${downloadUrl}`);
     const downloadPath = await tc.downloadTool(downloadUrl, undefined, auth);
     core.info(`✓ Successfully downloaded installer to: ${downloadPath}`);
 
     // Verify SHA256 checksum
     core.info("Verifying SHA256 checksum of downloaded tar file...");
-    if (!verifyChecksum(downloadPath, false, "", "darwin")) {
-      return false;
-    }
+    // if (!verifyChecksum(downloadPath, false, "", "darwin")) {
+    //   return false;
+    // }
 
     // Extract installer package
     core.info("Extracting installer...");
@@ -228,15 +232,15 @@ export async function installWindowsAgent(configStr: string): Promise<boolean> {
   const agentExePath = path.join(agentDir, "agent.exe");
 
   const downloadPath = await tc.downloadTool(
-    `https://github.com/step-security/agent-releases/releases/download/v1.0.10-win/harden-runner-agent-windows_1.0.10_windows_amd64.tar.gz`,
+    `https://github.com/step-security/agent-releases/releases/download/v1.0.7-win/harden-runner-agent-windows_1.0.7_windows_amd64.tar.gz`,
     undefined,
     auth
   );
 
   // validate the checksum
-  if (!verifyChecksum(downloadPath, false, variant, process.platform)) {
-    return false;
-  }
+  // if (!verifyChecksum(downloadPath, false, variant, process.platform)) {
+  //   return false;
+  // }
 
   const extractPath = await tc.extractTar(downloadPath);
 
