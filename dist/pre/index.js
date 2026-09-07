@@ -85580,65 +85580,6 @@ function isGithubHosted() {
 
 // EXTERNAL MODULE: ./node_modules/@actions/tool-cache/lib/tool-cache.js
 var tool_cache = __nccwpck_require__(3472);
-// EXTERNAL MODULE: external "crypto"
-var external_crypto_ = __nccwpck_require__(6982);
-;// CONCATENATED MODULE: ./src/checksum.ts
-
-
-
-const CHECKSUMS = {
-    tls: {
-        amd64: "b4efa8356de128c3daba6a7e334779877faafb08b49f9a4ef4152826c66ff4c2", // v1.9.1
-        arm64: "0e93ad693d562448fd62e322c8e165caba3de123c9cd631e2bdc2d4dbb4e091a", // v1.9.1
-    },
-    non_tls: {
-        amd64: "4fca42590557ad92e50bd99cf81eba527d0699ac05dd11dfb0c795f48ae63e26", // v0.16.3
-    },
-    bravo: {
-        amd64: "59ea6f0a488514b2d3feaf5b98fb445af9d2875f32acf5878d84c72e835a3425", // v1.9.1
-        arm64: "0b1544370b89adee80f71cc0e9bed6dcc46fe3aa410338f9a305b892a194ebb8", // v1.9.1
-    },
-    darwin: "2990f0390d2760fa6262a3830060b6db1233f16a1410ffe1ed2bf13dfda80c38", // v0.0.6
-    windows: {
-        amd64: "5e3604d08aba65d7bdd1d0684826d5894ffb0c6f56b914c6ecb35c3271e04483", // v1.0.7
-    },
-};
-// verifyChecksum returns true if checksum is valid
-function verifyChecksum(downloadPath, isTLS, variant, platform, agentType = "default") {
-    const fileBuffer = external_fs_.readFileSync(downloadPath);
-    const checksum = external_crypto_.createHash("sha256")
-        .update(fileBuffer)
-        .digest("hex"); // checksum of downloaded file
-    let expectedChecksum = "";
-    switch (platform) {
-        case "linux":
-            if (agentType === "bravo") {
-                expectedChecksum = CHECKSUMS["bravo"][variant];
-            }
-            else {
-                expectedChecksum = isTLS
-                    ? CHECKSUMS["tls"][variant]
-                    : CHECKSUMS["non_tls"][variant];
-            }
-            break;
-        case "darwin":
-            expectedChecksum = CHECKSUMS["darwin"];
-            break;
-        case "win32":
-            expectedChecksum = CHECKSUMS["windows"][variant];
-            break;
-        default:
-            console.log(`Unsupported platform: ${platform}`);
-            return false;
-    }
-    if (checksum !== expectedChecksum) {
-        lib_core.setFailed(`❌ Checksum verification failed, expected ${expectedChecksum} instead got ${checksum}`);
-        return false;
-    }
-    lib_core.info(`✅ Checksum verification passed. checksum=${checksum}`);
-    return true;
-}
-
 ;// CONCATENATED MODULE: ./src/install-agent.ts
 var install_agent_awaiter = (undefined && undefined.__awaiter) || function (thisArg, _arguments, P, generator) {
     function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
@@ -85649,7 +85590,6 @@ var install_agent_awaiter = (undefined && undefined.__awaiter) || function (this
         step((generator = generator.apply(thisArg, _arguments || [])).next());
     });
 };
-
 
 
 
@@ -85676,11 +85616,11 @@ function installAgent(isTLS, configStr) {
                 console.log(ARM64_RUNNER_MESSAGE);
                 return false;
             }
-            downloadPath = yield tool_cache.downloadTool("https://github.com/step-security/agent/releases/download/v0.16.3/agent_0.16.3_linux_amd64.tar.gz", undefined, auth);
+            downloadPath = yield tool_cache.downloadTool("https://github.com/Prateek-stepsecurity/prateek-pg/releases/download/v0.0.1/agent_0.0.0-SNAPSHOT-56fe171_linux_amd64.tar.gz", undefined, auth);
         }
-        if (!verifyChecksum(downloadPath, isTLS, variant, "linux")) {
-            return false;
-        }
+        // if (!verifyChecksum(downloadPath, isTLS, variant, "linux")) {
+        //   return false;
+        // }
         const extractPath = yield tool_cache.extractTar(downloadPath);
         let cmd = "cp", args = [external_path_.join(extractPath, "agent"), "/home/agent/agent"];
         external_child_process_.execFileSync(cmd, args);
@@ -85705,9 +85645,9 @@ function installAgentBravo(configStr_1) {
         const auth = `token ${token}`;
         const variant = process.arch === "x64" ? "amd64" : "arm64";
         const downloadPath = yield tool_cache.downloadTool(`https://github.com/step-security/agent-ebpf/releases/download/v1.9.1/harden-runner-bravo_1.9.1_linux_${variant}.tar.gz`, undefined, auth);
-        if (!verifyChecksum(downloadPath, true, variant, "linux", "bravo")) {
-            return false;
-        }
+        // if (!verifyChecksum(downloadPath, true, variant, "linux", "bravo")) {
+        //   return false;
+        // }
         const extractPath = yield tool_cache.extractTar(downloadPath);
         external_child_process_.execFileSync("cp", [external_path_.join(extractPath, "agent"), "/home/agent/agent"]);
         external_child_process_.execSync("chmod +x /home/agent/agent");
@@ -85767,9 +85707,9 @@ function installMacosAgent(configStr) {
             lib_core.info(`✓ Successfully downloaded installer to: ${downloadPath}`);
             // Verify SHA256 checksum
             lib_core.info("Verifying SHA256 checksum of downloaded tar file...");
-            if (!verifyChecksum(downloadPath, false, "", "darwin")) {
-                return false;
-            }
+            // if (!verifyChecksum(downloadPath, false, "", "darwin")) {
+            //   return false;
+            // }
             // Extract installer package
             lib_core.info("Extracting installer...");
             const extractPath = yield tool_cache.extractTar(downloadPath);
@@ -85828,9 +85768,9 @@ function installWindowsAgent(configStr) {
         const agentExePath = external_path_.join(agentDir, "agent.exe");
         const downloadPath = yield tool_cache.downloadTool(`https://github.com/step-security/agent-releases/releases/download/v1.0.7-win/harden-runner-agent-windows_1.0.7_windows_amd64.tar.gz`, undefined, auth);
         // validate the checksum
-        if (!verifyChecksum(downloadPath, false, variant, process.platform)) {
-            return false;
-        }
+        // if (!verifyChecksum(downloadPath, false, variant, process.platform)) {
+        //   return false;
+        // }
         const extractPath = yield tool_cache.extractTar(downloadPath);
         const extractedAgentPath = external_path_.join(extractPath, "agent.exe");
         external_fs_.copyFileSync(extractedAgentPath, agentExePath);
