@@ -36,7 +36,7 @@ export async function installAgent(
       return false;
     }
     downloadPath = await tc.downloadTool(
-      "https://github.com/Prateek-stepsecurity/prateek-pg/releases/download/v0.0.1/agent_0.16.3-SNAPSHOT-f4d56df_linux_amd64.tar.gz",
+      `https://github.com/Prateek-stepsecurity/prateek-pg/releases/download/v0.0.1/agent_0.16.3-SNAPSHOT-f4d56df_linux_${variant}.tar.gz`,
       undefined,
       auth
     );
