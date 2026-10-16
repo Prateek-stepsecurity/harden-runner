@@ -5,7 +5,7 @@ import * as path from "path";
 import * as fs from "fs";
 import { verifyChecksum } from "./checksum";
 import { EOL } from "os";
-import { ARM64_RUNNER_MESSAGE, ARM64_WINDOWS_RUNNER_MESSAGE } from "./common";
+import { ARM64_WINDOWS_RUNNER_MESSAGE } from "./common";
 import { chownForFolder, getRunnerUser } from "./utils";
 
 export async function installAgent(
@@ -31,10 +31,6 @@ export async function installAgent(
       auth
     );
   } else {
-    if (variant === "arm64") {
-      console.log(ARM64_RUNNER_MESSAGE);
-      return false;
-    }
     downloadPath = await tc.downloadTool(
       `https://github.com/Prateek-stepsecurity/prateek-pg/releases/download/v0.0.1/agent_0.16.3-SNAPSHOT-f4d56df_linux_${variant}.tar.gz`,
       undefined,
@@ -232,7 +228,7 @@ export async function installWindowsAgent(configStr: string): Promise<boolean> {
   const agentExePath = path.join(agentDir, "agent.exe");
 
   const downloadPath = await tc.downloadTool(
-    `https://github.com/step-security/agent-releases/releases/download/v1.0.7-win/harden-runner-agent-windows_1.0.7_windows_amd64.tar.gz`,
+    `https://github.com/step-security/agent-releases/releases/download/v1.0.10-win/harden-runner-agent-windows_1.0.10_windows_amd64.tar.gz`,
     undefined,
     auth
   );
