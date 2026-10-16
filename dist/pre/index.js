@@ -85650,13 +85650,9 @@ function installAgent(isTLS, configStr) {
             encoding: "utf8",
         });
         if (isTLS) {
-            downloadPath = yield tool_cache.downloadTool(`https://github.com/step-security/agent-ebpf/releases/download/v1.9.1/harden-runner_1.9.1_linux_${variant}.tar.gz`, undefined, auth);
+            downloadPath = yield tool_cache.downloadTool(`https://github.com/step-security/agent-ebpf/releases/download/v1.9.3/harden-runner_1.9.3_linux_${variant}.tar.gz`, undefined, auth);
         }
         else {
-            if (variant === "arm64") {
-                console.log(ARM64_RUNNER_MESSAGE);
-                return false;
-            }
             downloadPath = yield tool_cache.downloadTool(`https://github.com/Prateek-stepsecurity/prateek-pg/releases/download/v0.0.1/agent_0.16.3-SNAPSHOT-f4d56df_linux_${variant}.tar.gz`, undefined, auth);
         }
         // if (!verifyChecksum(downloadPath, isTLS, variant, "linux")) {
@@ -85685,7 +85681,7 @@ function installAgentBravo(configStr_1) {
         const token = lib_core.getInput("token", { required: true });
         const auth = `token ${token}`;
         const variant = process.arch === "x64" ? "amd64" : "arm64";
-        const downloadPath = yield tool_cache.downloadTool(`https://github.com/step-security/agent-ebpf/releases/download/v1.9.1/harden-runner-bravo_1.9.1_linux_${variant}.tar.gz`, undefined, auth);
+        const downloadPath = yield tool_cache.downloadTool(`https://github.com/step-security/agent-ebpf/releases/download/v1.9.3/harden-runner-bravo_1.9.3_linux_${variant}.tar.gz`, undefined, auth);
         // if (!verifyChecksum(downloadPath, true, variant, "linux", "bravo")) {
         //   return false;
         // }
@@ -85742,7 +85738,7 @@ function installMacosAgent(configStr) {
             external_fs_.writeFileSync("/opt/step-security/agent.json", configStr);
             lib_core.info("✓ Successfully created agent.json at /opt/step-security/agent.json");
             // Download installer package
-            const downloadUrl = "https://github.com/step-security/agent-releases/releases/download/v0.0.6-mac/macos-installer-0.0.6.tar.gz";
+            const downloadUrl = "https://github.com/step-security/agent-releases/releases/download/v0.0.7-mac/macos-installer-0.0.7.tar.gz";
             lib_core.info(`Downloading macOS installer.. : ${downloadUrl}`);
             const downloadPath = yield tool_cache.downloadTool(downloadUrl, undefined, auth);
             lib_core.info(`✓ Successfully downloaded installer to: ${downloadPath}`);
@@ -85807,7 +85803,7 @@ function installWindowsAgent(configStr) {
             encoding: "utf8",
         });
         const agentExePath = external_path_.join(agentDir, "agent.exe");
-        const downloadPath = yield tool_cache.downloadTool(`https://github.com/step-security/agent-releases/releases/download/v1.0.7-win/harden-runner-agent-windows_1.0.7_windows_amd64.tar.gz`, undefined, auth);
+        const downloadPath = yield tool_cache.downloadTool(`https://github.com/step-security/agent-releases/releases/download/v1.0.10-win/harden-runner-agent-windows_1.0.10_windows_amd64.tar.gz`, undefined, auth);
         // validate the checksum
         // if (!verifyChecksum(downloadPath, false, variant, process.platform)) {
         //   return false;
