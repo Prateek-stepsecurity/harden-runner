@@ -85360,6 +85360,8 @@ function isDocker() {
 
 // EXTERNAL MODULE: ./node_modules/@actions/github/lib/github.js
 var github = __nccwpck_require__(3228);
+// EXTERNAL MODULE: ./node_modules/@actions/tool-cache/lib/retry-helper.js
+var retry_helper = __nccwpck_require__(7380);
 ;// CONCATENATED MODULE: ./src/cache.ts
 const cacheKey = "harden-runner-cacheKey";
 const cacheFile = "/home/agent/cache.txt";
@@ -85584,44 +85586,6 @@ function echo(content) {
     external_child_process_.execFileSync("echo", [content]);
 }
 
-;// CONCATENATED MODULE: ./src/monitor.ts
-var monitor_awaiter = (undefined && undefined.__awaiter) || function (thisArg, _arguments, P, generator) {
-    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
-    return new (P || (P = Promise))(function (resolve, reject) {
-        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
-        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
-        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
-        step((generator = generator.apply(thisArg, _arguments || [])).next());
-    });
-};
-
-// Posts to the /monitor endpoint, making up to 3 attempts with a 3s timeout each.
-// A timeout, a network error, or a status other than 200/409 is retried. 200 and
-// 409 (Harden Runner unavailable) are final. Returns the last response received,
-// or undefined if no attempt got a response.
-function postMonitor(url, body, apiUrl) {
-    return monitor_awaiter(this, void 0, void 0, function* () {
-        let resp;
-        for (let retry = 0; retry < 3; retry++) {
-            try {
-                resp = yield fetch(url, {
-                    method: "POST",
-                    headers: { "content-type": "application/json" },
-                    body: JSON.stringify(body),
-                    signal: AbortSignal.timeout(3000),
-                });
-                if (resp.status === 200 || String(resp.status) === STATUS_HARDEN_RUNNER_UNAVAILABLE)
-                    break;
-                console.log(`monitor call returned ${resp.status} (attempt ${retry + 1}/3)`);
-            }
-            catch (e) {
-                console.log(`error in connecting to ${apiUrl} (attempt ${retry + 1}/3): ${e}`);
-            }
-        }
-        return resp;
-    });
-}
-
 ;// CONCATENATED MODULE: ./src/tls-inspect.ts
 var tls_inspect_awaiter = (undefined && undefined.__awaiter) || function (thisArg, _arguments, P, generator) {
     function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
@@ -85679,16 +85643,16 @@ var external_crypto_ = __nccwpck_require__(6982);
 
 const CHECKSUMS = {
     tls: {
-        amd64: "c794a3ee8ba799519ebc718adec5b9ae79ad3ea6a48aa5a4a80cb19434766463", // v1.9.6
-        arm64: "f9732189aed33feec7f1927891ac8e8fe1d15df1d5895dcfcc02e0939a0d0b5e", // v1.9.6
+        amd64: "811c33347d8152cf12cbcc665f571293e6af47ecf151134da9fb5195909b8a56", // v1.9.5
+        arm64: "6738ceea3aa817670aac8085b6e82095b37d81ce76e4cc5b0ac73bae4abea2ff", // v1.9.5
     },
     non_tls: {
-        amd64: "9db01a8e795ffa77e0220de75c37f3fde83ec8e411e1fad8932977a13d49e8d0", // v0.18.1
-        arm64: "82e2311147ea22346d62472c8c897b5fbb9cdbb4d6fe3bcd97298f1637d56935", // v0.18.1
+        amd64: "baec749d7477e37c4410bbe1c5a1669ba72de18a49d3d013e817a9ae95d122e5", // v0.18.0
+        arm64: "ec783c4c6a04e7d60788596c71aa9f8fd19fef20985dc2bd72ce2aa7e513649f", // v0.18.0
     },
     bravo: {
-        amd64: "1ddf2b2846b3c6c4b6b9d3ed5a09bc75f52124aef478c5038e41c70896e2e3d3", // v1.9.6
-        arm64: "5f9e057feb82f906ed05d522bc03429b52f60a5b3067157631a1561cd42ad7ad", // v1.9.6
+        amd64: "8fcae88b4f127371f943a44e020ca69c00a60db3fc92a582e9890ceb533f25a9", // v1.9.5
+        arm64: "8af18952c1cc7f9a18c4f337df2c3fd542c5180e94abaa666ee74c8c4956597c", // v1.9.5
     },
     darwin: "0e0964799818e8a63cf785bb00d70c3b1eeb9d0d0bfbcace364be7a469ee13aa", // v0.0.9
     windows: {
@@ -85761,10 +85725,10 @@ function installAgent(isTLS, configStr) {
             encoding: "utf8",
         });
         if (isTLS) {
-            downloadPath = yield tool_cache.downloadTool(`https://github.com/step-security/agent-ebpf/releases/download/v1.9.6/harden-runner_1.9.6_linux_${variant}.tar.gz`, undefined, auth);
+            downloadPath = yield tool_cache.downloadTool(`https://github.com/step-security/agent-ebpf/releases/download/v1.9.5/harden-runner_1.9.5_linux_${variant}.tar.gz`, undefined, auth);
         }
         else {
-            downloadPath = yield tool_cache.downloadTool(`https://github.com/step-security/agent/releases/download/v0.18.1/agent_0.18.1_linux_${variant}.tar.gz`, undefined, auth);
+            downloadPath = yield tool_cache.downloadTool(`https://github.com/step-security/agent/releases/download/v0.18.0/agent_0.18.0_linux_${variant}.tar.gz`, undefined, auth);
         }
         if (!verifyChecksum(downloadPath, isTLS, variant, "linux")) {
             return false;
@@ -85792,7 +85756,7 @@ function installAgentBravo(configStr_1) {
         const token = lib_core.getInput("token", { required: true });
         const auth = `token ${token}`;
         const variant = process.arch === "x64" ? "amd64" : "arm64";
-        const downloadPath = yield tool_cache.downloadTool(`https://github.com/step-security/agent-ebpf/releases/download/v1.9.6/harden-runner-bravo_1.9.6_linux_${variant}.tar.gz`, undefined, auth);
+        const downloadPath = yield tool_cache.downloadTool(`https://github.com/step-security/agent-ebpf/releases/download/v1.9.5/harden-runner-bravo_1.9.5_linux_${variant}.tar.gz`, undefined, auth);
         if (!verifyChecksum(downloadPath, true, variant, "linux", "bravo")) {
             return false;
         }
@@ -86976,10 +86940,30 @@ function resolveCacheHost() {
                 job: process.env["GITHUB_JOB"],
             };
             const url = `${api_url}/github/${process.env["GITHUB_REPOSITORY"]}/actions/runs/${process.env["GITHUB_RUN_ID"]}/monitor`;
-            const resp = yield postMonitor(url, monitorRequestData, api_url);
-            if (!resp)
-                throw new Error("no response from monitor endpoint after 3 attempts");
-            statusCode = resp.status;
+            // same retry as tc.downloadTool used for agent install (3 attempts,
+            // retry on network errors, 5xx, 408 and 429), but with no wait between attempts
+            const retryHelper = new retry_helper.RetryHelper(3, 0, 0);
+            let attempt = 0;
+            const resp = yield retryHelper.execute(() => setup_awaiter(void 0, void 0, void 0, function* () {
+                attempt++;
+                try {
+                    const r = yield fetch(url, {
+                        method: "POST",
+                        headers: { "content-type": "application/json" },
+                        body: JSON.stringify(monitorRequestData),
+                        signal: AbortSignal.timeout(3000),
+                    });
+                    statusCode = r.status;
+                    if (r.status >= 500 || r.status === 408 || r.status === 429) {
+                        throw new Error(`monitor call failed with status ${r.status}`);
+                    }
+                    return r;
+                }
+                catch (e) {
+                    console.log(`error in connecting to ${api_url} (attempt ${attempt}/3): ${e}`);
+                    throw e;
+                }
+            }));
             const responseData = resp.ok
                 ? (yield resp.json())
                 : undefined;
@@ -87095,9 +87079,12 @@ function callMonitorEndpoint(api_url, confg) {
                 job: process.env["GITHUB_JOB"],
             };
             const url = `${api_url}/github/${process.env["GITHUB_REPOSITORY"]}/actions/runs/${process.env["GITHUB_RUN_ID"]}/monitor`;
-            const resp = yield postMonitor(url, monitorRequestData, api_url);
-            if (!resp)
-                throw new Error("no response from monitor endpoint after 3 attempts");
+            const resp = yield fetch(url, {
+                method: "POST",
+                headers: { "content-type": "application/json" },
+                body: JSON.stringify(monitorRequestData),
+                signal: AbortSignal.timeout(3000),
+            });
             statusCode = resp.status;
             if (resp.ok) {
                 const result = (yield resp.json());
