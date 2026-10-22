@@ -7,6 +7,7 @@ import * as common from "./common";
 import isDocker from "is-docker";
 import { context } from "@actions/github";
 import { EOL } from "os";
+import { RetryHelper } from "@actions/tool-cache/lib/retry-helper";
 import {
   ArtifactCacheEntry,
   cacheKey,
@@ -445,14 +446,32 @@ async function resolveCacheHost(): Promise<string | undefined> {
         job: process.env["GITHUB_JOB"],
       };
       const url = `${api_url}/github/${process.env["GITHUB_REPOSITORY"]}/actions/runs/${process.env["GITHUB_RUN_ID"]}/monitor`;
-      const resp = await fetch(url, {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify(monitorRequestData),
-        signal: AbortSignal.timeout(3000),
+      // same retry as tc.downloadTool used for agent install (3 attempts,
+      // retry on network errors, 5xx, 408 and 429), but with no wait between attempts
+      const retryHelper = new RetryHelper(3, 0, 0);
+      let attempt = 0;
+      const resp = await retryHelper.execute(async () => {
+        attempt++;
+        try {
+          const r = await fetch(url, {
+            method: "POST",
+            headers: { "content-type": "application/json" },
+            body: JSON.stringify(monitorRequestData),
+            signal: AbortSignal.timeout(3000),
+          });
+          statusCode = r.status;
+          if (r.status >= 500 || r.status === 408 || r.status === 429) {
+            throw new Error(`monitor call failed with status ${r.status}`);
+          }
+          return r;
+        } catch (e) {
+          console.log(
+            `error in connecting to ${api_url} (attempt ${attempt}/3): ${e}`
+          );
+          throw e;
+        }
       });
 
-      statusCode = resp.status;
       const responseData = resp.ok
         ? ((await resp.json()) as MonitorResponse)
         : undefined;

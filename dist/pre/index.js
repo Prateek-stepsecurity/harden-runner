@@ -85350,6 +85350,8 @@ function isDocker() {
 
 // EXTERNAL MODULE: ./node_modules/@actions/github/lib/github.js
 var github = __nccwpck_require__(3228);
+// EXTERNAL MODULE: ./node_modules/@actions/tool-cache/lib/retry-helper.js
+var retry_helper = __nccwpck_require__(7380);
 ;// CONCATENATED MODULE: ./src/cache.ts
 const cacheKey = "harden-runner-cacheKey";
 const cacheFile = "/home/agent/cache.txt";
@@ -85899,6 +85901,7 @@ var __rest = (undefined && undefined.__rest) || function (s, e) {
 
 
 
+
 // Node 22+ terminates the process on unhandled promise rejections by default.
 // Third-party libraries used during Pre-step (notably @actions/cache's tar +
 // upload streams under concurrent matrix runs) can emit background rejections
@@ -86239,13 +86242,30 @@ function resolveCacheHost() {
                 job: process.env["GITHUB_JOB"],
             };
             const url = `${api_url}/github/${process.env["GITHUB_REPOSITORY"]}/actions/runs/${process.env["GITHUB_RUN_ID"]}/monitor`;
-            const resp = yield fetch(url, {
-                method: "POST",
-                headers: { "content-type": "application/json" },
-                body: JSON.stringify(monitorRequestData),
-                signal: AbortSignal.timeout(3000),
-            });
-            statusCode = resp.status;
+            // same retry as tc.downloadTool used for agent install (3 attempts,
+            // retry on network errors, 5xx, 408 and 429), but with no wait between attempts
+            const retryHelper = new retry_helper.RetryHelper(3, 0, 0);
+            let attempt = 0;
+            const resp = yield retryHelper.execute(() => setup_awaiter(void 0, void 0, void 0, function* () {
+                attempt++;
+                try {
+                    const r = yield fetch(url, {
+                        method: "POST",
+                        headers: { "content-type": "application/json" },
+                        body: JSON.stringify(monitorRequestData),
+                        signal: AbortSignal.timeout(3000),
+                    });
+                    statusCode = r.status;
+                    if (r.status >= 500 || r.status === 408 || r.status === 429) {
+                        throw new Error(`monitor call failed with status ${r.status}`);
+                    }
+                    return r;
+                }
+                catch (e) {
+                    console.log(`error in connecting to ${api_url} (attempt ${attempt}/3): ${e}`);
+                    throw e;
+                }
+            }));
             const responseData = resp.ok
                 ? (yield resp.json())
                 : undefined;
