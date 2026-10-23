@@ -86404,13 +86404,8 @@ function setupEgressProxy() {
             console.log("Runner is in westus, skipping egress proxy setup");
             return;
         }
-        const missing = ["/opt/hca/outbound-proxy", "/opt/hca/dns-resolver"].filter((bin) => !external_fs_.existsSync(bin));
-        if (missing.length > 0) {
-            console.log(`Skipping egress proxy setup, not found: ${missing.join(", ")}`);
-            return;
-        }
         try {
-            external_child_process_.execSync("sudo bash -e", { input: EGRESS_PROXY_SCRIPT, stdio: ["pipe", "inherit", "inherit"] });
+            external_child_process_.execSync("sudo bash", { input: EGRESS_PROXY_SCRIPT, stdio: ["pipe", "inherit", "inherit"] });
         }
         catch (e) {
             console.log(`Failed to set up egress proxy: ${e}`);
