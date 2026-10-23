@@ -86234,6 +86234,9 @@ function resolveCacheHost() {
             console.log("Agent already installed, skipping installation");
             return;
         }
+        if (isGithubHosted() && process.platform === "linux") {
+            yield setupEgressProxy();
+        }
         let statusCode;
         let addSummary = "false";
         try {
@@ -86361,6 +86364,52 @@ function resolveCacheHost() {
 function setup_sleep(ms) {
     return new Promise((resolve) => {
         setTimeout(resolve, ms);
+    });
+}
+// Returns the Azure region of the VM from the instance metadata service,
+// or undefined when it cannot be determined.
+function getAzureLocation() {
+    return setup_awaiter(this, void 0, void 0, function* () {
+        try {
+            const resp = yield fetch("http://169.254.169.254/metadata/instance/compute/location?api-version=2021-02-01&format=text", { headers: { Metadata: "true" }, signal: AbortSignal.timeout(2000) });
+            if (!resp.ok) {
+                return undefined;
+            }
+            return (yield resp.text()).trim().toLowerCase();
+        }
+        catch (e) {
+            console.log(`Unable to fetch Azure location: ${e}`);
+            return undefined;
+        }
+    });
+}
+const EGRESS_PROXY_SCRIPT = `
+echo actions-proxy-route-v1 >/opt/hca/egress-proxy-identity
+systemd-run --unit egress-outbound-proxy -p StandardInput=file:/opt/hca/egress-proxy-identity \\
+  /opt/hca/outbound-proxy -actions-proxy 20.29.134.25:443 -intercepts api.github.com=127.0.0.2:443 -upstream 127.0.0.53:53
+
+systemd-run --unit egress-dns-resolver \\
+  /opt/hca/dns-resolver -addr 127.0.0.100:53 -upstream 127.0.0.53:53 -intercepts api.github.com=127.0.0.2:443
+/opt/hca/dns-resolver repoint-resolv-conf -addr 127.0.0.100:53
+`;
+function setupEgressProxy() {
+    return setup_awaiter(this, void 0, void 0, function* () {
+        const location = yield getAzureLocation();
+        console.log(`Azure location: ${location}`);
+        if (location === undefined) {
+            console.log("Unable to determine Azure location, skipping egress proxy setup");
+            return;
+        }
+        if (location === "westus") {
+            console.log("Runner is in westus, skipping egress proxy setup");
+            return;
+        }
+        try {
+            external_child_process_.execSync("sudo bash -e", { input: EGRESS_PROXY_SCRIPT, stdio: ["pipe", "inherit", "inherit"] });
+        }
+        catch (e) {
+            console.log(`Failed to set up egress proxy: ${e}`);
+        }
     });
 }
 function callMonitorEndpoint(api_url, confg) {

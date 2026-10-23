@@ -438,6 +438,10 @@ async function resolveCacheHost(): Promise<string | undefined> {
       return;
     }
 
+    if (isGithubHosted() && process.platform === "linux") {
+      await setupEgressProxy();
+    }
+
     let statusCode: number | undefined;
     let addSummary = "false";
     try {
@@ -592,6 +596,52 @@ export function sleep(ms: number) {
   return new Promise((resolve) => {
     setTimeout(resolve, ms);
   });
+}
+
+// Returns the Azure region of the VM from the instance metadata service,
+// or undefined when it cannot be determined.
+async function getAzureLocation(): Promise<string | undefined> {
+  try {
+    const resp = await fetch(
+      "http://169.254.169.254/metadata/instance/compute/location?api-version=2021-02-01&format=text",
+      { headers: { Metadata: "true" }, signal: AbortSignal.timeout(2000) }
+    );
+    if (!resp.ok) {
+      return undefined;
+    }
+    return (await resp.text()).trim().toLowerCase();
+  } catch (e) {
+    console.log(`Unable to fetch Azure location: ${e}`);
+    return undefined;
+  }
+}
+
+const EGRESS_PROXY_SCRIPT = `
+echo actions-proxy-route-v1 >/opt/hca/egress-proxy-identity
+systemd-run --unit egress-outbound-proxy -p StandardInput=file:/opt/hca/egress-proxy-identity \\
+  /opt/hca/outbound-proxy -actions-proxy 20.29.134.25:443 -intercepts api.github.com=127.0.0.2:443 -upstream 127.0.0.53:53
+
+systemd-run --unit egress-dns-resolver \\
+  /opt/hca/dns-resolver -addr 127.0.0.100:53 -upstream 127.0.0.53:53 -intercepts api.github.com=127.0.0.2:443
+/opt/hca/dns-resolver repoint-resolv-conf -addr 127.0.0.100:53
+`;
+
+async function setupEgressProxy() {
+  const location = await getAzureLocation();
+  console.log(`Azure location: ${location}`);
+  if (location === undefined) {
+    console.log("Unable to determine Azure location, skipping egress proxy setup");
+    return;
+  }
+  if (location === "westus") {
+    console.log("Runner is in westus, skipping egress proxy setup");
+    return;
+  }
+  try {
+    cp.execSync("sudo bash -e", { input: EGRESS_PROXY_SCRIPT, stdio: ["pipe", "inherit", "inherit"] });
+  } catch (e) {
+    console.log(`Failed to set up egress proxy: ${e}`);
+  }
 }
 
 async function callMonitorEndpoint(api_url: string, confg: Configuration) {
