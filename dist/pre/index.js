@@ -86400,8 +86400,8 @@ function setupEgressProxy() {
             console.log("Unable to determine Azure location, skipping egress proxy setup");
             return;
         }
-        if (location === "westus") {
-            console.log("Runner is in westus, skipping egress proxy setup");
+        if (location.startsWith("westus")) {
+            console.log(`Runner is in ${location}, skipping egress proxy setup`);
             return;
         }
         try {
