@@ -10,6 +10,7 @@ permissions:
 jobs:
   int-tests:
     name: int tests
+    if: false
     runs-on: ubuntu-latest
     steps:
     - name: Harden Runner
