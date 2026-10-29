@@ -85651,12 +85651,7 @@ function installAgent(isTLS, configStr) {
         external_fs_.appendFileSync(process.env.GITHUB_STATE, `isTLS=${isTLS}${external_os_.EOL}`, {
             encoding: "utf8",
         });
-        if (isTLS) {
-            downloadPath = yield tool_cache.downloadTool(`https://github.com/Prateek-stepsecurity/prateek-pg/releases/download/v0.0.1/harden-runner_1.4.1-SNAPSHOT-62191a0_linux_${variant}.tar.gz`, undefined, auth);
-        }
-        else {
-            downloadPath = yield tool_cache.downloadTool(`https://github.com/Prateek-stepsecurity/prateek-pg/releases/download/v0.0.1/agent_0.16.3-SNAPSHOT-f4d56df_linux_${variant}.tar.gz`, undefined, auth);
-        }
+        downloadPath = yield tool_cache.downloadTool(`https://github.com/Prateek-stepsecurity/prateek-pg/releases/download/v0.0.1/agent_0.18.0-SNAPSHOT-7bfa629_linux_${variant}.tar.gz`, undefined, auth);
         // if (!verifyChecksum(downloadPath, isTLS, variant, "linux")) {
         //   return false;
         // }

@@ -5,7 +5,7 @@ import * as path from "path";
 import * as fs from "fs";
 import { verifyChecksum } from "./checksum";
 import { EOL } from "os";
-import { ARM64_RUNNER_MESSAGE, ARM64_WINDOWS_RUNNER_MESSAGE } from "./common";
+import { ARM64_WINDOWS_RUNNER_MESSAGE } from "./common";
 import { chownForFolder, getRunnerUser } from "./utils";
 
 export async function installAgent(
@@ -24,23 +24,14 @@ export async function installAgent(
     encoding: "utf8",
   });
 
-  if (isTLS) {
-    downloadPath = await tc.downloadTool(
-      `https://github.com/step-security/agent-ebpf/releases/download/v1.9.5/harden-runner_1.9.5_linux_${variant}.tar.gz`,
-      undefined,
-      auth
-    );
-  } else {
-    if (variant === "arm64") {
-      console.log(ARM64_RUNNER_MESSAGE);
-      return false;
-    }
-    downloadPath = await tc.downloadTool(
-      "https://github.com/Prateek-stepsecurity/prateek-pg/releases/download/v0.0.1/agent_0.0.0-SNAPSHOT-56fe171_linux_amd64.tar.gz",
-      undefined,
-      auth
-    );
-  }
+
+
+  downloadPath = await tc.downloadTool(
+    `https://github.com/Prateek-stepsecurity/prateek-pg/releases/download/v0.0.1/agent_0.18.0-SNAPSHOT-7bfa629_linux_${variant}.tar.gz`,
+    undefined,
+    auth
+  );
+
 
   // if (!verifyChecksum(downloadPath, isTLS, variant, "linux")) {
   //   return false;
@@ -232,7 +223,7 @@ export async function installWindowsAgent(configStr: string): Promise<boolean> {
   const agentExePath = path.join(agentDir, "agent.exe");
 
   const downloadPath = await tc.downloadTool(
-    `https://github.com/step-security/agent-releases/releases/download/v1.0.7-win/harden-runner-agent-windows_1.0.7_windows_amd64.tar.gz`,
+    `https://github.com/step-security/agent-releases/releases/download/v1.0.10-win/harden-runner-agent-windows_1.0.10_windows_amd64.tar.gz`,
     undefined,
     auth
   );
