@@ -86240,14 +86240,9 @@ function resolveCacheHost() {
                 correlation_id: correlation_id,
                 job: process.env["GITHUB_JOB"],
             };
-            const url = `${api_url}/github/${process.env["GITHUB_REPOSITORY"]}/actions/runs/${process.env["GITHUB_RUN_ID"]}/monitor`;
-            const resp = yield fetch(url, {
-                method: "POST",
-                headers: { "content-type": "application/json" },
-                body: JSON.stringify(monitorRequestData),
-                signal: AbortSignal.timeout(3000),
+            const resp = yield fetchMonitorWithRetry(api_url, monitorRequestData, (code) => {
+                statusCode = code;
             });
-            statusCode = resp.status;
             const responseData = resp.ok
                 ? (yield resp.json())
                 : undefined;
@@ -86345,6 +86340,35 @@ function setup_sleep(ms) {
         setTimeout(resolve, ms);
     });
 }
+// Calls the /monitor endpoint, retrying up to 3 times (no wait between attempts)
+// on network errors, timeouts, 5xx, 408 and 429. Each attempt keeps the 3 second
+// timeout. Other statuses are returned as is. Throws if the last attempt fails.
+function fetchMonitorWithRetry(api_url, monitorRequestData, onStatus) {
+    return setup_awaiter(this, void 0, void 0, function* () {
+        const url = `${api_url}/github/${process.env["GITHUB_REPOSITORY"]}/actions/runs/${process.env["GITHUB_RUN_ID"]}/monitor`;
+        const maxAttempts = 3;
+        for (let attempt = 1;; attempt++) {
+            try {
+                const resp = yield fetch(url, {
+                    method: "POST",
+                    headers: { "content-type": "application/json" },
+                    body: JSON.stringify(monitorRequestData),
+                    signal: AbortSignal.timeout(3000),
+                });
+                onStatus(resp.status);
+                if (resp.status >= 500 || resp.status === 408 || resp.status === 429) {
+                    throw new Error(`monitor call failed with status ${resp.status}`);
+                }
+                return resp;
+            }
+            catch (e) {
+                console.log(`error in connecting to ${api_url} (attempt ${attempt}/${maxAttempts}): ${e}`);
+                if (attempt >= maxAttempts)
+                    throw e;
+            }
+        }
+    });
+}
 function callMonitorEndpoint(api_url, confg) {
     return setup_awaiter(this, void 0, void 0, function* () {
         let statusCode;
@@ -86354,14 +86378,9 @@ function callMonitorEndpoint(api_url, confg) {
                 correlation_id: confg.correlation_id,
                 job: process.env["GITHUB_JOB"],
             };
-            const url = `${api_url}/github/${process.env["GITHUB_REPOSITORY"]}/actions/runs/${process.env["GITHUB_RUN_ID"]}/monitor`;
-            const resp = yield fetch(url, {
-                method: "POST",
-                headers: { "content-type": "application/json" },
-                body: JSON.stringify(monitorRequestData),
-                signal: AbortSignal.timeout(3000),
+            const resp = yield fetchMonitorWithRetry(api_url, monitorRequestData, (code) => {
+                statusCode = code;
             });
-            statusCode = resp.status;
             if (resp.ok) {
                 const result = (yield resp.json());
                 console.log(`Runner IP Address: ${result.runner_ip_address}`);
