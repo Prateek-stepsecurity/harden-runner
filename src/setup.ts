@@ -439,33 +439,44 @@ async function resolveCacheHost(): Promise<string | undefined> {
 
     let statusCode: number | undefined;
     let addSummary = "false";
-    try {
-      const monitorRequestData = {
-        correlation_id: correlation_id,
-        job: process.env["GITHUB_JOB"],
-      };
-      const resp = await fetchMonitorWithRetry(api_url, monitorRequestData, (code) => {
-        statusCode = code;
-      });
-
-      const responseData = resp.ok
-        ? ((await resp.json()) as MonitorResponse)
-        : undefined;
-      fs.appendFileSync(
-        process.env.GITHUB_STATE,
-        `monitorStatusCode=${statusCode}${EOL}`,
-        {
-          encoding: "utf8",
+    const monitorRequestData = {
+      correlation_id: correlation_id,
+      job: process.env["GITHUB_JOB"],
+    };
+    const url = `${api_url}/github/${process.env["GITHUB_REPOSITORY"]}/actions/runs/${process.env["GITHUB_RUN_ID"]}/monitor`;
+    for (let retry = 0; retry < 3; retry++) {
+      try {
+        const resp = await fetch(url, {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify(monitorRequestData),
+          signal: AbortSignal.timeout(3000),
+        });
+        if (resp.status !== 200 && retry < 2) {
+          throw new Error(`monitor call returned ${resp.status}`);
         }
-      );
 
-      if (statusCode === 200 && responseData) {
-        console.log(`Runner IP Address: ${responseData.runner_ip_address}`);
-        confg.one_time_key = responseData.one_time_key;
-        addSummary = responseData.monitoring_started ? "true" : "false";
+        statusCode = resp.status;
+        const responseData = resp.ok
+          ? ((await resp.json()) as MonitorResponse)
+          : undefined;
+        fs.appendFileSync(
+          process.env.GITHUB_STATE,
+          `monitorStatusCode=${statusCode}${EOL}`,
+          {
+            encoding: "utf8",
+          }
+        );
+
+        if (statusCode === 200 && responseData) {
+          console.log(`Runner IP Address: ${responseData.runner_ip_address}`);
+          confg.one_time_key = responseData.one_time_key;
+          addSummary = responseData.monitoring_started ? "true" : "false";
+        }
+        break;
+      } catch (e) {
+        console.log(`error in connecting to ${api_url} (attempt ${retry + 1}/3): ${e}`);
       }
-    } catch (e) {
-      console.log(`error in connecting to ${api_url}: ${e}`);
     }
     fs.appendFileSync(
       process.env.GITHUB_STATE,
@@ -570,17 +581,15 @@ export function sleep(ms: number) {
   });
 }
 
-// Calls the /monitor endpoint, retrying up to 3 times (no wait between attempts)
-// on network errors, timeouts, 5xx, 408 and 429. Each attempt keeps the 3 second
-// timeout. Other statuses are returned as is. Throws if the last attempt fails.
-async function fetchMonitorWithRetry(
-  api_url: string,
-  monitorRequestData: { correlation_id: string; job: string | undefined },
-  onStatus: (statusCode: number) => void
-): Promise<Response> {
+async function callMonitorEndpoint(api_url: string, confg: Configuration) {
+  let statusCode: number | undefined;
+  let addSummary = "false";
+  const monitorRequestData = {
+    correlation_id: confg.correlation_id,
+    job: process.env["GITHUB_JOB"],
+  };
   const url = `${api_url}/github/${process.env["GITHUB_REPOSITORY"]}/actions/runs/${process.env["GITHUB_RUN_ID"]}/monitor`;
-  const maxAttempts = 3;
-  for (let attempt = 1; ; attempt++) {
+  for (let retry = 0; retry < 3; retry++) {
     try {
       const resp = await fetch(url, {
         method: "POST",
@@ -588,37 +597,20 @@ async function fetchMonitorWithRetry(
         body: JSON.stringify(monitorRequestData),
         signal: AbortSignal.timeout(3000),
       });
-      onStatus(resp.status);
-      if (resp.status >= 500 || resp.status === 408 || resp.status === 429) {
-        throw new Error(`monitor call failed with status ${resp.status}`);
+      if (resp.status !== 200 && retry < 2) {
+        throw new Error(`monitor call returned ${resp.status}`);
       }
-      return resp;
+      statusCode = resp.status;
+      if (resp.ok) {
+        const result = (await resp.json()) as MonitorResponse;
+        console.log(`Runner IP Address: ${result.runner_ip_address}`);
+        confg.one_time_key = result.one_time_key;
+        addSummary = result.monitoring_started ? "true" : "false";
+      }
+      break;
     } catch (e) {
-      console.log(`error in connecting to ${api_url} (attempt ${attempt}/${maxAttempts}): ${e}`);
-      if (attempt >= maxAttempts) throw e;
+      console.log(`error in connecting to ${api_url} (attempt ${retry + 1}/3): ${e}`);
     }
-  }
-}
-
-async function callMonitorEndpoint(api_url: string, confg: Configuration) {
-  let statusCode: number | undefined;
-  let addSummary = "false";
-  try {
-    const monitorRequestData = {
-      correlation_id: confg.correlation_id,
-      job: process.env["GITHUB_JOB"],
-    };
-    const resp = await fetchMonitorWithRetry(api_url, monitorRequestData, (code) => {
-      statusCode = code;
-    });
-    if (resp.ok) {
-      const result = (await resp.json()) as MonitorResponse;
-      console.log(`Runner IP Address: ${result.runner_ip_address}`);
-      confg.one_time_key = result.one_time_key;
-      addSummary = result.monitoring_started ? "true" : "false";
-    }
-  } catch (e) {
-    console.log(`error in connecting to ${api_url}: ${e}`);
   }
   fs.appendFileSync(process.env.GITHUB_STATE, `monitorStatusCode=${statusCode}${EOL}`, { encoding: "utf8" });
   fs.appendFileSync(process.env.GITHUB_STATE, `addSummary=${addSummary}${EOL}`, { encoding: "utf8" });
