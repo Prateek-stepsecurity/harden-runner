@@ -571,7 +571,7 @@ export function sleep(ms: number) {
 }
 
 // Calls the /monitor endpoint, retrying up to 3 times (no wait between attempts)
-// on network errors, timeouts, 5xx, 408 and 429. Each attempt keeps the 300 ms
+// on network errors, timeouts, 5xx, 408 and 429. Each attempt keeps the 3 second
 // timeout. Other statuses are returned as is. Throws if the last attempt fails.
 async function fetchMonitorWithRetry(
   api_url: string,
@@ -586,7 +586,7 @@ async function fetchMonitorWithRetry(
         method: "POST",
         headers: { "content-type": "application/json" },
         body: JSON.stringify(monitorRequestData),
-        signal: AbortSignal.timeout(300),
+        signal: AbortSignal.timeout(3000),
       });
       onStatus(resp.status);
       if (resp.status >= 500 || resp.status === 408 || resp.status === 429) {
