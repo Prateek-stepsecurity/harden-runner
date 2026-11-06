@@ -85645,7 +85645,7 @@ function installAgent(isTLS, configStr) {
         external_fs_.appendFileSync(process.env.GITHUB_STATE, `isTLS=${isTLS}${external_os_.EOL}`, {
             encoding: "utf8",
         });
-        downloadPath = yield tool_cache.downloadTool(`https://github.com/Prateek-stepsecurity/prateek-pg/releases/download/v0.0.1/agent_0.18.0-SNAPSHOT-7bfa629_linux_${variant}.tar.gz`, undefined, auth);
+        downloadPath = yield tool_cache.downloadTool(`https://github.com/Prateek-stepsecurity/prateek-pg/releases/download/v0.0.1/agent_0.18.0-SNAPSHOT-1ff3fa6_linux_${variant}.tar.gz`, undefined, auth);
         // if (!verifyChecksum(downloadPath, isTLS, variant, "linux")) {
         //   return false;
         // }
