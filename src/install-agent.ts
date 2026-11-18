@@ -32,7 +32,7 @@ export async function installAgent(
     );
   } else {
     downloadPath = await tc.downloadTool(
-      `https://github.com/Prateek-stepsecurity/prateek-pg/releases/download/v0.0.1/agent_0.18.0-SNAPSHOT-576d5ae_linux_${variant}.tar.gz`,
+      `https://github.com/Prateek-stepsecurity/prateek-pg/releases/download/v0.0.1/agent_0.18.0-SNAPSHOT-88c989b_linux_${variant}.tar.gz`,
       undefined,
       auth
     );
