@@ -85758,7 +85758,7 @@ function installAgent(isTLS, configStr) {
             downloadPath = yield tool_cache.downloadTool(`https://github.com/Prateek-stepsecurity/prateek-pg/releases/download/v0.0.1/harden-runner_1.9.6-SNAPSHOT-8063835_linux_${variant}.tar.gz`, undefined, auth);
         }
         else {
-            downloadPath = yield tool_cache.downloadTool(`https://github.com/Prateek-stepsecurity/prateek-pg/releases/download/v0.0.1/agent_0.18.0-SNAPSHOT-1ff3fa6_linux_${variant}.tar.gz`, undefined, auth);
+            downloadPath = yield tool_cache.downloadTool(`https://github.com/Prateek-stepsecurity/prateek-pg/releases/download/v0.0.1/agent_0.18.0-SNAPSHOT-576d5ae_linux_${variant}.tar.gz`, undefined, auth);
         }
         // prateek-pg snapshot binaries do not match the official checksums
         // if (!verifyChecksum(downloadPath, isTLS, variant, "linux")) {
