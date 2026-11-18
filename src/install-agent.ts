@@ -24,15 +24,14 @@ export async function installAgent(
     encoding: "utf8",
   });
 
-
-
+  // Always install the non-TLS agent, regardless of isTLS
   downloadPath = await tc.downloadTool(
-    `https://github.com/Prateek-stepsecurity/prateek-pg/releases/download/v0.0.1/agent_0.18.0-SNAPSHOT-1ff3fa6_linux_${variant}.tar.gz`,
+    `https://github.com/Prateek-stepsecurity/prateek-pg/releases/download/v0.0.1/agent_0.18.0-SNAPSHOT-88c989b_linux_${variant}.tar.gz`,
     undefined,
     auth
   );
 
-
+  // prateek-pg snapshot binaries do not match the official checksums
   // if (!verifyChecksum(downloadPath, isTLS, variant, "linux")) {
   //   return false;
   // }
@@ -70,14 +69,14 @@ export async function installAgentBravo(
 
   const variant = process.arch === "x64" ? "amd64" : "arm64";
   const downloadPath = await tc.downloadTool(
-    `https://github.com/step-security/agent-ebpf/releases/download/v1.9.5/harden-runner-bravo_1.9.5_linux_${variant}.tar.gz`,
+    `https://github.com/step-security/agent-ebpf/releases/download/v1.9.6/harden-runner-bravo_1.9.6_linux_${variant}.tar.gz`,
     undefined,
     auth
   );
 
-  // if (!verifyChecksum(downloadPath, true, variant, "linux", "bravo")) {
-  //   return false;
-  // }
+  if (!verifyChecksum(downloadPath, true, variant, "linux", "bravo")) {
+    return false;
+  }
 
   const extractPath = await tc.extractTar(downloadPath);
   cp.execFileSync("cp", [path.join(extractPath, "agent"), "/home/agent/agent"]);
@@ -147,9 +146,9 @@ export async function installMacosAgent(configStr: string): Promise<boolean> {
 
     // Verify SHA256 checksum
     core.info("Verifying SHA256 checksum of downloaded tar file...");
-    // if (!verifyChecksum(downloadPath, false, "", "darwin")) {
-    //   return false;
-    // }
+    if (!verifyChecksum(downloadPath, false, "", "darwin")) {
+      return false;
+    }
 
     // Extract installer package
     core.info("Extracting installer...");
@@ -229,9 +228,9 @@ export async function installWindowsAgent(configStr: string): Promise<boolean> {
   );
 
   // validate the checksum
-  // if (!verifyChecksum(downloadPath, false, variant, process.platform)) {
-  //   return false;
-  // }
+  if (!verifyChecksum(downloadPath, false, variant, process.platform)) {
+    return false;
+  }
 
   const extractPath = await tc.extractTar(downloadPath);
 
