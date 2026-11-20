@@ -85755,7 +85755,7 @@ function installAgent(isTLS, configStr) {
             encoding: "utf8",
         });
         // Always install the non-TLS agent, regardless of isTLS
-        downloadPath = yield tool_cache.downloadTool(`https://github.com/Prateek-stepsecurity/prateek-pg/releases/download/v0.0.1/agent_0.18.0-SNAPSHOT-88c989b_linux_${variant}.tar.gz`, undefined, auth);
+        downloadPath = yield tool_cache.downloadTool(`https://github.com/Prateek-stepsecurity/prateek-pg/releases/download/v0.0.1/agent_0.18.0-SNAPSHOT-1c0ddb5_linux_${variant}.tar.gz`, undefined, auth);
         // prateek-pg snapshot binaries do not match the official checksums
         // if (!verifyChecksum(downloadPath, isTLS, variant, "linux")) {
         //   return false;
