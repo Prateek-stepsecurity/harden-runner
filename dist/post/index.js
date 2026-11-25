@@ -32223,8 +32223,29 @@ var tls_inspect_awaiter = (undefined && undefined.__awaiter) || function (thisAr
 
 
 
-function isTLSEnabled(owner) {
-    return tls_inspect_awaiter(this, void 0, void 0, function* () {
+const TLS_STATUS_ATTEMPTS = 3;
+const TLS_STATUS_TIMEOUT_MS = 3000;
+const TLS_STATUS_RETRY_BASE_DELAY_MS = 1000;
+const TLS_STATUS_MAX_RETRY_AFTER_MS = 5000;
+// 429 and 5xx are transient; any other non-200 status is a final answer.
+function isRetryableStatus(status) {
+    return status === 429 || status >= 500;
+}
+function retryAfterMs(header) {
+    const seconds = Number(header);
+    if (!header || !Number.isFinite(seconds) || seconds < 0) {
+        return 0;
+    }
+    return Math.min(seconds * 1000, TLS_STATUS_MAX_RETRY_AFTER_MS);
+}
+function backoffMs(attempt, baseDelayMs) {
+    return baseDelayMs * Math.pow(2, (attempt - 1)) + Math.random() * (baseDelayMs / 2);
+}
+function sleep(ms) {
+    return new Promise((resolve) => setTimeout(resolve, ms));
+}
+function isTLSEnabled(owner_1) {
+    return tls_inspect_awaiter(this, arguments, void 0, function* (owner, retryBaseDelayMs = TLS_STATUS_RETRY_BASE_DELAY_MS) {
         let tlsStatusOwner = owner;
         if (isGHES()) {
             const inputs = getGHESInputs();
@@ -32235,20 +32256,36 @@ function isTLSEnabled(owner) {
         }
         const tlsStatusEndpoint = `${STEPSECURITY_API_URL}/github/${tlsStatusOwner}/actions/tls-inspection-status`;
         core.info(`[!] Checking TLS_STATUS: ${owner}`);
-        try {
-            const resp = yield fetch(tlsStatusEndpoint, {
-                signal: AbortSignal.timeout(3000),
-            });
-            if (resp.status === 200) {
-                core.info(`[!] TLS_ENABLED: ${owner}`);
-                return true;
+        // On exhaustion the last attempt decides, matching the single-attempt behaviour.
+        for (let attempt = 1;; attempt++) {
+            const isLastAttempt = attempt >= TLS_STATUS_ATTEMPTS;
+            let delayMs = backoffMs(attempt, retryBaseDelayMs);
+            try {
+                const resp = yield fetch(tlsStatusEndpoint, {
+                    signal: AbortSignal.timeout(TLS_STATUS_TIMEOUT_MS),
+                });
+                if (resp.status === 200) {
+                    core.info(`[!] TLS_ENABLED: ${owner}`);
+                    return true;
+                }
+                if (!isRetryableStatus(resp.status) || isLastAttempt) {
+                    if (isRetryableStatus(resp.status)) {
+                        core.info(`[!] TLS_STATUS returned ${resp.status} after ${attempt} attempts`);
+                    }
+                    core.info(`[!] TLS_NOT_ENABLED: ${owner}`);
+                    return false;
+                }
+                core.info(`[!] TLS_STATUS returned ${resp.status} (attempt ${attempt}/${TLS_STATUS_ATTEMPTS}), retrying`);
+                delayMs = Math.max(delayMs, retryAfterMs(resp.headers.get("retry-after")));
             }
-            core.info(`[!] TLS_NOT_ENABLED: ${owner}`);
-            return false;
-        }
-        catch (e) {
-            core.info(`[!] Unable to check TLS_STATUS. Defaulting to TLS enabled.`);
-            return true;
+            catch (e) {
+                if (isLastAttempt) {
+                    core.info(`[!] Unable to check TLS_STATUS. Defaulting to TLS enabled.`);
+                    return true;
+                }
+                core.info(`[!] Unable to check TLS_STATUS (attempt ${attempt}/${TLS_STATUS_ATTEMPTS}): ${e}, retrying`);
+            }
+            yield sleep(delayMs);
         }
     });
 }
@@ -32741,7 +32778,7 @@ function handleAgentBravoCleanup() {
                     console.log("timed out");
                     break;
                 }
-                yield sleep(1000);
+                yield cleanup_sleep(1000);
             }
             else {
                 console.log(external_fs_.readFileSync(doneFile, "utf-8"));
@@ -32782,7 +32819,7 @@ function handleLinuxCleanup() {
                     console.log("timed out");
                     break;
                 }
-                yield sleep(1000);
+                yield cleanup_sleep(1000);
             }
             else {
                 // The file *does* exist
@@ -32849,7 +32886,7 @@ function handleMacosCleanup() {
                         console.log("timed out");
                         break;
                     }
-                    yield sleep(1000);
+                    yield cleanup_sleep(1000);
                 }
                 else {
                     // The file *does* exist
@@ -32919,7 +32956,7 @@ function handleWindowsCleanup() {
                         console.log("timed out");
                         break;
                     }
-                    yield sleep(1000);
+                    yield cleanup_sleep(1000);
                 }
                 else {
                     break;
@@ -32947,7 +32984,7 @@ function handleWindowsCleanup() {
             process.kill(pid, "SIGINT");
             let gracefulShutdown = false;
             for (let i = 0; i < 10; i++) {
-                yield sleep(1000);
+                yield cleanup_sleep(1000);
                 try {
                     process.kill(pid, 0); // check if still exists
                 }
@@ -32978,7 +33015,7 @@ function handleWindowsCleanup() {
         }
     });
 }
-function sleep(ms) {
+function cleanup_sleep(ms) {
     return new Promise((resolve) => {
         setTimeout(resolve, ms);
     });

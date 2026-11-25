@@ -1,0 +1,49 @@
+# Repro for https://github.com/step-security/harden-runner/issues/725
+#
+# With `cache-mode: none`, the pre-step cache host lookup is denied, the seed
+# `saveCache` is denied too, and the job logs:
+#   ##[warning]Cache reservation failed: cache write denied: token has no writable scopes
+#
+# `released` runs the version from the issue (expected: warning appears).
+# `branch` runs the code in this checkout (expected after the fix: no warning).
+name: Repro 725 - cache-mode none warning
+
+on:
+  workflow_dispatch:
+
+permissions: {}
+
+# Workflow-level, as in the issue report.
+cache-mode: none
+
+jobs:
+  released:
+    name: released v2.22.4 (expect warning)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: step-security/harden-runner@1d88384fd173af6ecb012dfd0264a306b711241a # v2.22.4
+        with:
+          egress-policy: block
+          allowed-endpoints: >
+            github.com:443
+
+      - name: Show effective cache mode
+        run: echo "ACTIONS_CACHE_MODE=${ACTIONS_CACHE_MODE:-<unset>}"
+
+  branch:
+    name: this branch (expect no warning once fixed)
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - uses: ./
+        with:
+          egress-policy: block
+          allowed-endpoints: >
+            github.com:443
+
+      - name: Show effective cache mode
+        run: echo "ACTIONS_CACHE_MODE=${ACTIONS_CACHE_MODE:-<unset>}"

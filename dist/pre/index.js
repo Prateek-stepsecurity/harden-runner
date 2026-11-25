@@ -85370,6 +85370,18 @@ const RefKey = "GITHUB_REF";
 function isValidEvent() {
     return RefKey in process.env && Boolean(process.env[RefKey]);
 }
+// The runner exposes the job's effective `cache-mode` to JavaScript actions as
+// ACTIONS_CACHE_MODE. Under "none" the cache lookup is denied, and under
+// "read" the seed save is denied, which @actions/cache surfaces as a
+// "Cache reservation failed" warning on every run (issue #725). The cache
+// host lookup is defense-in-depth only, so skip all cache calls in both
+// modes. When unset (older runners), keep the existing behavior.
+const CacheModeKey = "ACTIONS_CACHE_MODE";
+const restrictedCacheModes = ["none", "read"];
+function isCacheAccessRestricted() {
+    const mode = (process.env[CacheModeKey] || "").trim().toLowerCase();
+    return restrictedCacheModes.includes(mode);
+}
 
 ;// CONCATENATED MODULE: ./src/configs.ts
 const STEPSECURITY_ENV = "agent"; // agent or int
@@ -85629,8 +85641,29 @@ var tls_inspect_awaiter = (undefined && undefined.__awaiter) || function (thisAr
 
 
 
-function isTLSEnabled(owner) {
-    return tls_inspect_awaiter(this, void 0, void 0, function* () {
+const TLS_STATUS_ATTEMPTS = 3;
+const TLS_STATUS_TIMEOUT_MS = 3000;
+const TLS_STATUS_RETRY_BASE_DELAY_MS = 1000;
+const TLS_STATUS_MAX_RETRY_AFTER_MS = 5000;
+// 429 and 5xx are transient; any other non-200 status is a final answer.
+function isRetryableStatus(status) {
+    return status === 429 || status >= 500;
+}
+function retryAfterMs(header) {
+    const seconds = Number(header);
+    if (!header || !Number.isFinite(seconds) || seconds < 0) {
+        return 0;
+    }
+    return Math.min(seconds * 1000, TLS_STATUS_MAX_RETRY_AFTER_MS);
+}
+function backoffMs(attempt, baseDelayMs) {
+    return baseDelayMs * Math.pow(2, (attempt - 1)) + Math.random() * (baseDelayMs / 2);
+}
+function tls_inspect_sleep(ms) {
+    return new Promise((resolve) => setTimeout(resolve, ms));
+}
+function isTLSEnabled(owner_1) {
+    return tls_inspect_awaiter(this, arguments, void 0, function* (owner, retryBaseDelayMs = TLS_STATUS_RETRY_BASE_DELAY_MS) {
         let tlsStatusOwner = owner;
         if (isGHES()) {
             const inputs = getGHESInputs();
@@ -85641,20 +85674,36 @@ function isTLSEnabled(owner) {
         }
         const tlsStatusEndpoint = `${configs_STEPSECURITY_API_URL}/github/${tlsStatusOwner}/actions/tls-inspection-status`;
         lib_core.info(`[!] Checking TLS_STATUS: ${owner}`);
-        try {
-            const resp = yield fetch(tlsStatusEndpoint, {
-                signal: AbortSignal.timeout(3000),
-            });
-            if (resp.status === 200) {
-                lib_core.info(`[!] TLS_ENABLED: ${owner}`);
-                return true;
+        // On exhaustion the last attempt decides, matching the single-attempt behaviour.
+        for (let attempt = 1;; attempt++) {
+            const isLastAttempt = attempt >= TLS_STATUS_ATTEMPTS;
+            let delayMs = backoffMs(attempt, retryBaseDelayMs);
+            try {
+                const resp = yield fetch(tlsStatusEndpoint, {
+                    signal: AbortSignal.timeout(TLS_STATUS_TIMEOUT_MS),
+                });
+                if (resp.status === 200) {
+                    lib_core.info(`[!] TLS_ENABLED: ${owner}`);
+                    return true;
+                }
+                if (!isRetryableStatus(resp.status) || isLastAttempt) {
+                    if (isRetryableStatus(resp.status)) {
+                        lib_core.info(`[!] TLS_STATUS returned ${resp.status} after ${attempt} attempts`);
+                    }
+                    lib_core.info(`[!] TLS_NOT_ENABLED: ${owner}`);
+                    return false;
+                }
+                lib_core.info(`[!] TLS_STATUS returned ${resp.status} (attempt ${attempt}/${TLS_STATUS_ATTEMPTS}), retrying`);
+                delayMs = Math.max(delayMs, retryAfterMs(resp.headers.get("retry-after")));
             }
-            lib_core.info(`[!] TLS_NOT_ENABLED: ${owner}`);
-            return false;
-        }
-        catch (e) {
-            lib_core.info(`[!] Unable to check TLS_STATUS. Defaulting to TLS enabled.`);
-            return true;
+            catch (e) {
+                if (isLastAttempt) {
+                    lib_core.info(`[!] Unable to check TLS_STATUS. Defaulting to TLS enabled.`);
+                    return true;
+                }
+                lib_core.info(`[!] Unable to check TLS_STATUS (attempt ${attempt}/${TLS_STATUS_ATTEMPTS}): ${e}, retrying`);
+            }
+            yield tls_inspect_sleep(delayMs);
         }
     });
 }
@@ -86657,6 +86706,10 @@ function lookupCacheHost() {
 // lookup is defense-in-depth only.
 function resolveCacheHost() {
     return setup_awaiter(this, void 0, void 0, function* () {
+        if (isCacheAccessRestricted()) {
+            lib_core.info(`Skipping Actions cache host lookup: cache-mode is '${process.env.ACTIONS_CACHE_MODE}'`);
+            return undefined;
+        }
         lib_core.info(`cache version: ${(0,config.getCacheServiceVersion)()}`);
         try {
             const host = yield lookupCacheHost();
