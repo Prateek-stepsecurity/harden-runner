@@ -1,6 +1,6 @@
-import { isCacheAccessRestricted } from "./cache";
+import { getCacheMode } from "./cache";
 
-describe("isCacheAccessRestricted", () => {
+describe("getCacheMode", () => {
   const original = process.env.ACTIONS_CACHE_MODE;
 
   afterEach(() => {
@@ -11,24 +11,19 @@ describe("isCacheAccessRestricted", () => {
     }
   });
 
-  it.each(["none", "read", "NONE", " Read "])(
-    "returns true for cache-mode %p",
-    (mode) => {
-      process.env.ACTIONS_CACHE_MODE = mode;
-      expect(isCacheAccessRestricted()).toBe(true);
-    }
-  );
+  it.each([
+    ["none", "none"],
+    ["read", "read"],
+    [" READ ", "read"],
+    ["Write-Only", "write-only"],
+    ["", ""],
+  ])("normalizes %p to %p", (value: string, expected: string) => {
+    process.env.ACTIONS_CACHE_MODE = value;
+    expect(getCacheMode()).toBe(expected);
+  });
 
-  it.each(["read-write", "write", ""])(
-    "returns false for cache-mode %p",
-    (mode) => {
-      process.env.ACTIONS_CACHE_MODE = mode;
-      expect(isCacheAccessRestricted()).toBe(false);
-    }
-  );
-
-  it("returns false when ACTIONS_CACHE_MODE is unset", () => {
+  it("returns an empty string when ACTIONS_CACHE_MODE is unset", () => {
     delete process.env.ACTIONS_CACHE_MODE;
-    expect(isCacheAccessRestricted()).toBe(false);
+    expect(getCacheMode()).toBe("");
   });
 });
