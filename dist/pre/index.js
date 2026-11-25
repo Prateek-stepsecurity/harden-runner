@@ -86671,7 +86671,6 @@ function lookupCacheHost() {
 function resolveCacheHost() {
     return setup_awaiter(this, void 0, void 0, function* () {
         const cacheMode = getCacheMode();
-        lib_core.info(`cache mode: ${cacheMode || "<unset>"}`);
         if (cacheMode === "none") {
             lib_core.info("Skipping Actions cache host lookup: cache-mode is none");
             return undefined;

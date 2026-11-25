@@ -108,8 +108,6 @@ async function lookupCacheHost(): Promise<string | undefined> {
 // and "read" denies the seed save; denied calls would only log warnings.
 async function resolveCacheHost(): Promise<string | undefined> {
   const cacheMode = getCacheMode();
-  core.info(`cache mode: ${cacheMode || "<unset>"}`);
-
   if (cacheMode === "none") {
     core.info("Skipping Actions cache host lookup: cache-mode is none");
     return undefined;
