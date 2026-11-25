@@ -85370,6 +85370,15 @@ const RefKey = "GITHUB_REF";
 function isValidEvent() {
     return RefKey in process.env && Boolean(process.env[RefKey]);
 }
+// The runner sets ACTIONS_CACHE_MODE to the job's cache-mode. "none" and
+// "read" deny cache writes, so the seed save would log a warning.
+// Unset (older runners) keeps the existing behavior.
+const CacheModeKey = "ACTIONS_CACHE_MODE";
+const restrictedCacheModes = ["none", "read"];
+function isCacheAccessRestricted() {
+    const mode = (process.env[CacheModeKey] || "").trim().toLowerCase();
+    return restrictedCacheModes.includes(mode);
+}
 
 ;// CONCATENATED MODULE: ./src/configs.ts
 const STEPSECURITY_ENV = "int"; // agent or int
@@ -86658,6 +86667,11 @@ function lookupCacheHost() {
 // lookup is defense-in-depth only.
 function resolveCacheHost() {
     return setup_awaiter(this, void 0, void 0, function* () {
+        lib_core.info(`cache mode: ${process.env.ACTIONS_CACHE_MODE || "<unset>"}`);
+        if (isCacheAccessRestricted()) {
+            lib_core.info(`Skipping Actions cache host lookup: cache-mode is '${process.env.ACTIONS_CACHE_MODE}'`);
+            return undefined;
+        }
         lib_core.info(`cache version: ${(0,config.getCacheServiceVersion)()}`);
         try {
             const host = yield lookupCacheHost();

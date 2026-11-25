@@ -11,6 +11,7 @@ import {
   ArtifactCacheEntry,
   cacheKey,
   cacheFile,
+  isCacheAccessRestricted,
   isValidEvent,
 } from "./cache";
 import { Configuration, PolicyResponse } from "./interfaces";
@@ -105,6 +106,15 @@ async function lookupCacheHost(): Promise<string | undefined> {
 // in that case, the agent allows the cache endpoints implicitly and this
 // lookup is defense-in-depth only.
 async function resolveCacheHost(): Promise<string | undefined> {
+  core.info(`cache mode: ${process.env.ACTIONS_CACHE_MODE || "<unset>"}`);
+
+  if (isCacheAccessRestricted()) {
+    core.info(
+      `Skipping Actions cache host lookup: cache-mode is '${process.env.ACTIONS_CACHE_MODE}'`
+    );
+    return undefined;
+  }
+
   core.info(`cache version: ${getCacheServiceVersion()}`);
 
   try {

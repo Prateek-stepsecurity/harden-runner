@@ -20,3 +20,13 @@ const RefKey = "GITHUB_REF";
 export function isValidEvent(): boolean {
   return RefKey in process.env && Boolean(process.env[RefKey]);
 }
+
+// The runner sets ACTIONS_CACHE_MODE to the job's cache-mode. "none" and
+// "read" deny cache writes, so the seed save would log a warning.
+// Unset (older runners) keeps the existing behavior.
+const CacheModeKey = "ACTIONS_CACHE_MODE";
+const restrictedCacheModes = ["none", "read"];
+export function isCacheAccessRestricted(): boolean {
+  const mode = (process.env[CacheModeKey] || "").trim().toLowerCase();
+  return restrictedCacheModes.includes(mode);
+}
